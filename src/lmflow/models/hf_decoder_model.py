@@ -361,7 +361,7 @@ class HFDecoderModel(DecoderModel, Tunable):
             tokenized_column_order = ["text"]
             label_columns = ["text"]
         elif dataset_type == "text2text":
-            tokenized_column_order = ["input", "output"]
+            tokenized_column_order = ["instruction","input", "output"]
             label_columns = ["output"]
             add_special_tokens = False
         else:

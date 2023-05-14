@@ -10,7 +10,7 @@ Face dataset, mapping datasets, and retrieving the backend dataset and arguments
 
 
 # Importing necessary libraries and modules
-import json
+import json,os
 from pathlib import Path
 from typing import Optional
 
@@ -59,6 +59,7 @@ class Dataset:
         self.backend_dataset = None
         self.type = None        # Original type of the dataset
         self.dataset_path = data_args.dataset_path
+        self.samples_number = 0
 
         if data_args.dataset_path is None:
             return
@@ -93,6 +94,7 @@ class Dataset:
                             f' files have type "{self.type}", but in file'
                             f' {single_file}, it has type "{self.type}".'
                         )
+                    self.samples_number += len(json_data["instances"])
 
             # Load the dataset using the HuggingFace dataset library
             extensions = "json"
@@ -102,9 +104,10 @@ class Dataset:
                 field=KEY_INSTANCES,
                 split="train",
                 use_auth_token=None,
+                streaming=self.data_args.streaming,
             )
             self.backend_dataset = raw_dataset
-            self._check_data_format()
+            # self._check_data_format()
         elif backend == "json":
             # TODO (@Jiachun)
             pass
@@ -378,3 +381,6 @@ class Dataset:
         self.type
         """
         return self.type
+
+    def __len__(self):
+        return self.samples_number

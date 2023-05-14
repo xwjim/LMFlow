@@ -13,27 +13,29 @@ project_dir=$(cd "$(dirname $0)"/..; pwd)
 output_dir=${project_dir}/output_models/${exp_id}
 log_dir=${project_dir}/log/${exp_id}
 
-dataset_path=${project_dir}/data/alpaca/train
+dataset_path=${project_dir}/data/belle/
 
 mkdir -p ${output_dir} ${log_dir}
 
-deepspeed ${deepspeed_args} \
+CUDA_VISIBLE_DEVICES=0,1,2 deepspeed ${deepspeed_args} \
   examples/finetune.py \
-    --model_name_or_path gpt2 \
+    --model_name_or_path ../llm_ckpt/belle-ext-7b/ \
     --dataset_path ${dataset_path} \
     --output_dir ${output_dir} --overwrite_output_dir \
-    --num_train_epochs 0.01 \
-    --learning_rate 2e-5 \
+    --num_train_epochs 1 \
+    --learning_rate 1e-5 \
     --block_size 512 \
-    --per_device_train_batch_size 1 \
+    --per_device_train_batch_size 80 \
     --deepspeed configs/ds_config_zero3.json \
-    --bf16 \
+    --fp16 \
+    --streaming \
     --run_name finetune \
     --validation_split_percentage 0 \
     --logging_steps 20 \
     --do_train \
     --ddp_timeout 72000 \
-    --save_steps 5000 \
+    --save_steps 2000 \
+    --gradient_checkpointing \
     --dataloader_num_workers 1 \
     | tee ${log_dir}/train.log \
     2> ${log_dir}/train.err

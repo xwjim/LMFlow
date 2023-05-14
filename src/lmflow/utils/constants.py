@@ -165,6 +165,6 @@ DATASET_DESCRIPTION_MAP = {
 
 INSTANCE_FIELDS_MAP = {
     "text_only": ["text"],
-    "text2text": ["input", "output"],
+    "text2text": ["instruction","input", "output"],
     "float_only": ["value"],
 }

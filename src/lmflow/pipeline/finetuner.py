@@ -7,7 +7,7 @@ import copy
 import logging
 import os
 import sys
-
+import torch
 import datasets
 import transformers
 import evaluate
@@ -245,6 +245,8 @@ class Finetuner(BaseTuner):
                 return metric.compute(predictions=preds, references=labels)
             
         if finetuner_args.do_train:
+            if data_args.streaming:
+                finetuner_args.max_steps = int(len(lm_dataset)/torch.cuda.device_count()/finetuner_args.per_device_train_batch_size)
             if data_args.max_train_samples is not None:
                 max_train_samples = min(len(train_dataset), data_args.max_train_samples)
                 train_dataset = train_dataset.select(range(max_train_samples))
