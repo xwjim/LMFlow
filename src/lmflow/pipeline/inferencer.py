@@ -142,8 +142,9 @@ class Inferencer(BasePipeline):
                 inputs,
                 max_new_tokens=max_new_tokens,
                 temperature=temperature,
-                repetition_penalty=1.0,
+                repetition_penalty=self.inferencer_args.repetition_penalty,
                 do_sample=self.inferencer_args.do_sample,
+                top_p=self.inferencer_args.top_p,
             )
             text_out = model.decode(outputs[0], skip_special_tokens=True)
 

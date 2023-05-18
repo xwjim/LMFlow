@@ -578,6 +578,18 @@ class InferencerArguments:
             "help": "whether turn on true random sampling during inference."
         },
     )
+    top_p: Optional[float] = field(
+        default=0.9,
+        metadata={
+            "help": "higher this value, more random the model output"
+        },
+    )
+    repetition_penalty: Optional[float] = field(
+        default=1.02,
+        metadata={
+            "help": "higher this value, more random the model output"
+        },
+    )
 
 
 @dataclass
