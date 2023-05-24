@@ -8,7 +8,7 @@ if [ $# -ge 1 ]; then
   deepspeed_args="$1"
 fi
 
-exp_id=finetune
+exp_id=finetune_13b
 project_dir=$(cd "$(dirname $0)"/..; pwd)
 output_dir=${project_dir}/output_models/${exp_id}
 log_dir=${project_dir}/log/${exp_id}
@@ -19,22 +19,22 @@ mkdir -p ${output_dir} ${log_dir}
 
 CUDA_VISIBLE_DEVICES=0,1,2 deepspeed ${deepspeed_args} \
   examples/finetune.py \
-    --model_name_or_path ../llm_ckpt/belle-ext-7b/ \
+    --model_name_or_path ../llm_ckpt/belle-ext-13b/ \
     --dataset_path ${dataset_path} \
     --output_dir ${output_dir} --overwrite_output_dir \
     --num_train_epochs 1 \
     --learning_rate 1e-5 \
     --block_size 512 \
-    --per_device_train_batch_size 80 \
+    --per_device_train_batch_size 55 \
     --deepspeed configs/ds_config_zero3.json \
     --fp16 \
     --streaming \
-    --run_name finetune \
+    --run_name $exp_id \
     --validation_split_percentage 0 \
     --logging_steps 20 \
     --do_train \
     --ddp_timeout 72000 \
-    --save_steps 2000 \
+    --save_steps 1000 \
     --gradient_checkpointing \
     --dataloader_num_workers 1 \
     | tee ${log_dir}/train.log \
