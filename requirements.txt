@@ -11,3 +11,4 @@ cpm_kernels==1.0.11
 evaluate==0.4.0
 scikit-learn==1.2.2
 dill<0.3.5
+bitsandbytes==0.38.1
