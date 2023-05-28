@@ -5,12 +5,6 @@
 
 export NUM_GPUS_PER_WORKER=1
 export NUM_WORKERS=2
-
-export NCCL_SOCKET_IFNAME=eno1
-export NCCL_IB_DISABLE=1
-export NCCL_P2P_DISABLE=1
-export NCCL_NET_GDR_LEVEL=2
-
 export MASTER_ADDR=10.10.255.128
 export MASTER_PORT=31228
 
@@ -19,11 +13,11 @@ project_dir=$(cd "$(dirname $0)"/..; pwd)
 output_dir=${project_dir}/output_models/${exp_id}
 log_dir=${project_dir}/log/${exp_id}
 
-dataset_path=${project_dir}/data/belle/
+dataset_path=${project_dir}/data/BELLE/train/
 
 mkdir -p ${output_dir} ${log_dir}
 
-CUDA_VISIBLE_DEVICES=0,1 deepspeed --num_nodes $NUM_WORKERS \
+CUDA_VISIBLE_DEVICES=0 deepspeed --num_nodes $NUM_WORKERS \
     --num_gpus $NUM_GPUS_PER_WORKER \
     --master_addr $MASTER_ADDR \
     --master_port $MASTER_PORT \

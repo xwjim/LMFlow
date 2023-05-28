@@ -376,7 +376,7 @@ class HFDecoderModel(DecoderModel, Tunable):
         model_args = self.model_args
         raw_datasets = dataset
         hf_raw_datasets = dataset.get_backend_dataset()
-        column_names = list(hf_raw_datasets.features)
+        column_names = ['instruction', 'input', 'output'] #list(hf_raw_datasets.features)
 
         # since this will be pickled to avoid _LazyModule error in Hasher force
         # logger loading before tokenize_function

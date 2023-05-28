@@ -15,7 +15,7 @@ Typical usage example:
 """
 
 import sys
-import os
+import os,deepspeed
 sys.path.remove(os.path.abspath(os.path.dirname(sys.argv[0])))
 from transformers import HfArgumentParser
 
@@ -58,4 +58,11 @@ def main():
 
 
 if __name__ == '__main__':
+    # os.environ["NCCL_SOCKET_IFNAME"]="eno2"
+    # os.environ["NCCL_IB_DISABLE"]="1"
+    # os.environ["NCCL_P2P_DISABLE"]="1"
+    # os.environ["NCCL_NET_GDR_LEVEL"]="2"
+    # os.environ["MASTER_ADDR"]="10.10.255.128"
+    # os.environ["MASTER_PORT"]="31228"
+    # deepspeed.ops.op_builder.CPUAdamBuilder().load()
     main()

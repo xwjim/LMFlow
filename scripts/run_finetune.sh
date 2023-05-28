@@ -13,7 +13,7 @@ project_dir=$(cd "$(dirname $0)"/..; pwd)
 output_dir=${project_dir}/output_models/${exp_id}
 log_dir=${project_dir}/log/${exp_id}
 
-dataset_path=${project_dir}/data/belle/
+dataset_path=${project_dir}/data/BELLE/train_end_mark/
 
 mkdir -p ${output_dir} ${log_dir}
 
@@ -35,6 +35,7 @@ CUDA_VISIBLE_DEVICES=0,1,2 deepspeed ${deepspeed_args} \
     --do_train \
     --ddp_timeout 72000 \
     --save_steps 1000 \
+    --resume_from_checkpoint output_models/finetune/checkpoint-9000/ \
     --gradient_checkpointing \
     --dataloader_num_workers 1 \
     | tee ${log_dir}/train.log \
