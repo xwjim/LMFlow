@@ -286,9 +286,9 @@ class Finetuner(BaseTuner):
             metrics = train_result.metrics
 
             max_train_samples = (
-                data_args.max_train_samples if data_args.max_train_samples is not None else len(train_dataset)
+                data_args.max_train_samples if data_args.max_train_samples is not None else len(lm_dataset)
             )
-            metrics["train_samples"] = min(max_train_samples, len(train_dataset))
+            metrics["train_samples"] = min(max_train_samples, len(lm_dataset))
 
             trainer.log_metrics("train", metrics)
             trainer.save_metrics("train", metrics)
