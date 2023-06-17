@@ -23,12 +23,18 @@ from lmflow.pipeline.auto_pipeline import AutoPipeline
 from lmflow.models.auto_model import AutoModel
 from lmflow.args import ModelArguments, DatasetArguments, AutoArguments
 
-class Report_LLM()
-    def __init__():
+class Report_LLM:
+    def __init__(self,gpu_id="0"):
+
+        os.environ["CUDA_VISIBLE_DEVICES"]=gpu_id
+        pipeline_name = "evaluator"
+        PipelineArguments = AutoArguments.get_pipeline_args_class(pipeline_name)
 
         parser = HfArgumentParser((ModelArguments, DatasetArguments, PipelineArguments))
         model_args, data_args, pipeline_args = parser.parse_args_into_dataclasses()
 
+        model_args.model_name_or_path = "/home/wxu/llama-13b/checkpoint-8000/"
+        pipeline_args.deepspeed = "examples/ds_config.json"
         with open (pipeline_args.deepspeed, "r") as f:
             ds_config = json.load(f)
         

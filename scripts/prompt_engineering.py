@@ -59,6 +59,3 @@ if __name__ == "__main__":
     print(answer)
     chat.run("有什么好吃的?")
     print(answer)
-
-    # print(chat.conversation_chain.run("北京在哪里"))
-    # print(chat.conversation_chain.run("上面还有需要补充的么"))
