@@ -483,7 +483,7 @@ class EvaluatorArguments:
         },
     )
     prompt_structure: Optional[str] = field(
-        default="{input}",
+        default="###Human: {input}###Assistant:",
         metadata={
             "help": (
                 'Prompt structure to facilitate prompt engineering during'
