@@ -376,14 +376,17 @@ class HFDecoderModel(DecoderModel, Tunable):
         model_args = self.model_args
         raw_datasets = dataset
         hf_raw_datasets = dataset.get_backend_dataset()
-        column_names = ['instruction', 'input', 'output'] #list(hf_raw_datasets.features)
+        if raw_datasets.type == "text2text":
+            column_names = ["text"]
+        else:
+            column_names = ['instruction', 'input', 'output'] #list(hf_raw_datasets.features)
 
         # since this will be pickled to avoid _LazyModule error in Hasher force
         # logger loading before tokenize_function
         tok_logger = transformers.utils.logging.get_logger("transformers.tokenization_utils_base")
 
         def tokenize_function(examples):
-            num_example = len(examples[column_names[0]])
+            num_example = len(examples[tokenized_column_order[0]])
             token_dict = {
                 "input_ids": [[] for _ in range(num_example)],
                 "attention_mask": [[] for _ in range(num_example)],
@@ -433,7 +436,7 @@ class HFDecoderModel(DecoderModel, Tunable):
                 tokenize_function,
                 batched=True,
                 num_proc=data_args.preprocessing_num_workers,
-                remove_columns=column_names,
+                remove_columns=tokenized_column_order,
                 load_from_cache_file=not data_args.overwrite_cache,
                 desc="Running tokenizer on dataset",
                 new_fingerprint=new_fingerprint,
@@ -442,7 +445,7 @@ class HFDecoderModel(DecoderModel, Tunable):
             tokenized_datasets = raw_datasets.map(
                 tokenize_function,
                 batched=True,
-                remove_columns=column_names,
+                remove_columns=tokenized_column_order,
             )
         return tokenized_datasets
 

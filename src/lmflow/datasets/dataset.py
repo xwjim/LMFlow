@@ -96,6 +96,8 @@ class Dataset:
                         )
                     self.samples_number += len(json_data["instances"])
 
+            # self.type = "text2text"
+            # self.samples_number = 1000000000
             # Load the dataset using the HuggingFace dataset library
             extensions = "json"
             raw_dataset = load_dataset(
