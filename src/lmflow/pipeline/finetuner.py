@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding=utf-8
-"""The Finetuner class simplifies the process of running finetuning process on a language model for a TunableModel instance with given dataset. 
+"""The Finetuner class simplifies the process of running finetuning process on a language model for a TunableModel instance with given dataset.
 """
 
 import copy
@@ -23,6 +23,7 @@ from transformers.trainer_utils import get_last_checkpoint
 
 from lmflow.datasets.dataset import Dataset
 from lmflow.pipeline.base_tuner import BaseTuner
+from lmflow.pipeline.utils.peft_trainer import PeftTrainer, PeftSavingCallback
 
 
 logger = logging.getLogger(__name__)
@@ -36,7 +37,7 @@ class Finetuner(BaseTuner):
     ------------
     model_args : ModelArguments object.
         Contains the arguments required to load the model.
-    
+
     data_args : DatasetArguments object.
         Contains the arguments required to load the dataset.
 
@@ -45,13 +46,13 @@ class Finetuner(BaseTuner):
 
     args : Optional.
         Positional arguments.
-    
+
     kwargs : Optional.
         Keyword arguments.
 
     """
     def __init__(self, model_args, data_args, finetuner_args, *args, **kwargs):
-        
+
         self.model_args = model_args
         self.data_args = data_args
         self.finetuner_args = finetuner_args
@@ -79,7 +80,7 @@ class Finetuner(BaseTuner):
         logger.warning(
             f"Process rank: {finetuner_args.local_rank},"
             f" device: {finetuner_args.device},"
-            f" n_gpu: {finetuner_args.n_gpu}"
+            f" n_gpu: {finetuner_args.n_gpu},"
             f"distributed training: {bool(finetuner_args.local_rank != -1)},"
             f" 16-bits training: {finetuner_args.fp16}"
         )
@@ -193,11 +194,11 @@ class Finetuner(BaseTuner):
         ------------
         model : TunableModel object.
             TunableModel to perform tuning.
-        
+
         dataset:
             dataset to train model.
 
-        """   
+        """
         model_args = self.model_args
         data_args = self.data_args
         finetuner_args = self.finetuner_args
@@ -225,7 +226,7 @@ class Finetuner(BaseTuner):
                     model_max_length=model.get_max_length(),
                 )
             eval_dataset = lm_dataset.get_backend_dataset()
-            
+
 
             def preprocess_logits_for_metrics(logits, labels):
                 if isinstance(logits, tuple):
@@ -244,7 +245,7 @@ class Finetuner(BaseTuner):
                 labels = labels[:, 1:].reshape(-1)
                 preds = preds[:, :-1].reshape(-1)
                 return metric.compute(predictions=preds, references=labels)
-            
+
         if finetuner_args.do_train:
             if data_args.streaming:
                 finetuner_args.max_steps = int(len(lm_dataset)/torch.cuda.device_count()/finetuner_args.per_device_train_batch_size)
@@ -254,7 +255,15 @@ class Finetuner(BaseTuner):
 
         # Initialize our Trainer
         training_args = finetuner_args
-        trainer = Trainer(
+
+        if model_args.use_lora:
+            FinetuningTrainer = PeftTrainer
+            trainer_callbacks = [PeftSavingCallback]
+        else:
+            FinetuningTrainer = Trainer
+            trainer_callbacks = []
+
+        trainer = FinetuningTrainer(
             model=model.get_backend_model(),
             args=training_args,
             train_dataset=train_dataset if training_args.do_train else None,
@@ -264,6 +273,7 @@ class Finetuner(BaseTuner):
             data_collator=default_data_collator,
             compute_metrics=compute_metrics if training_args.do_eval else None,
             preprocess_logits_for_metrics=preprocess_logits_for_metrics if training_args.do_eval else None,
+            callbacks=trainer_callbacks
         )
 
         # Training

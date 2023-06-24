@@ -140,8 +140,8 @@ class Inferencer(BasePipeline):
 
             outputs = model.inference(
                 inputs,
-                max_new_tokens=max_new_tokens,
-                temperature=temperature,
+                max_new_tokens=self.inferencer_args.max_new_tokens,
+                temperature=self.inferencer_args.temperature,
                 repetition_penalty=self.inferencer_args.repetition_penalty,
                 do_sample=self.inferencer_args.do_sample,
                 top_p=self.inferencer_args.top_p,
@@ -168,12 +168,12 @@ class Inferencer(BasePipeline):
                 response = rstrip_partial_utf8(response)
                 yield response, False
         else:
-            for _ in range(0, max_new_tokens // token_per_step):
+            for _ in range(0, self.inferencer_args.max_new_tokens // token_per_step):
                 output_dataset = self.inference(
                     model=model,
                     dataset=input_dataset,
                     max_new_tokens=token_per_step,
-                    temperature=temperature,
+                    temperature=self.inferencer_args.temperature,
                 )
 
                 new_append_text = output_dataset.to_dict()["instances"][0]["text"]
