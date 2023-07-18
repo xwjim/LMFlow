@@ -37,6 +37,7 @@ CUDA_VISIBLE_DEVICES=0,1,2 deepspeed ${deepspeed_args} \
     --lr_scheduler_type constant \
     --gradient_checkpointing \
     --dataloader_num_workers 1 \
+    --use_flash_attention \
     | tee ${log_dir}/train.log \
     2> ${log_dir}/train.err
 
