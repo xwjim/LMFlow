@@ -59,7 +59,6 @@ class Dataset:
         self.backend_dataset = None
         self.type = None        # Original type of the dataset
         self.dataset_path = data_args.dataset_path
-        self.samples_number = 0
 
         if data_args.dataset_path is None:
             return
@@ -94,10 +93,8 @@ class Dataset:
                             f' files have type "{self.type}", but in file'
                             f' {single_file}, it has type "{self.type}".'
                         )
-                    self.samples_number += len(json_data["instances"])
 
             # self.type = "text2text"
-            # self.samples_number = 1000000000
             # Load the dataset using the HuggingFace dataset library
             extensions = "json"
             raw_dataset = load_dataset(
@@ -383,6 +380,3 @@ class Dataset:
         self.type
         """
         return self.type
-
-    def __len__(self):
-        return self.samples_number

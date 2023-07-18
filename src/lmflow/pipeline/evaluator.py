@@ -258,11 +258,7 @@ class Evaluator(BasePipeline):
             batch_input = model.encode(input, return_tensors="pt",padding=True).to(device=self.local_rank)
             inputs = batch_input['input_ids']
             mask = batch_input['attention_mask']
-<<<<<<< HEAD
-            outputs = model.inference(inputs, max_new_tokens=500,attention_mask=mask,temperature=0.0)
-=======
             outputs = model.inference(inputs, max_new_tokens=self.evaluator_args.max_new_tokens, attention_mask=mask,temperature=self.evaluator_args.temperature, repetition_penalty=self.evaluator_args.repetition_penalty)
->>>>>>> main
             text_out = model.decode(outputs, skip_special_tokens=True)
             # # only return the generation, trucating the input
             decoded_input = model.decode(inputs, skip_special_tokens=True,)

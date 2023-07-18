@@ -247,8 +247,6 @@ class Finetuner(BaseTuner):
                 return metric.compute(predictions=preds, references=labels)
 
         if finetuner_args.do_train:
-            if data_args.streaming:
-                finetuner_args.max_steps = int(len(lm_dataset)/torch.cuda.device_count()/finetuner_args.per_device_train_batch_size)
             if data_args.max_train_samples is not None:
                 max_train_samples = min(len(train_dataset), data_args.max_train_samples)
                 train_dataset = train_dataset.select(range(max_train_samples))
@@ -296,9 +294,9 @@ class Finetuner(BaseTuner):
             metrics = train_result.metrics
 
             max_train_samples = (
-                data_args.max_train_samples if data_args.max_train_samples is not None else len(lm_dataset)
+                data_args.max_train_samples if data_args.max_train_samples is not None else len(train_dataset)
             )
-            metrics["train_samples"] = min(max_train_samples, len(lm_dataset))
+            metrics["train_samples"] = min(max_train_samples, len(train_dataset))
 
             trainer.log_metrics("train", metrics)
             trainer.save_metrics("train", metrics)
