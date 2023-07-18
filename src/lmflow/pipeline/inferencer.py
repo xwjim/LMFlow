@@ -2,6 +2,7 @@
 # coding=utf-8
 """The Inferencer class simplifies the process of model inferencing."""
 
+import copy
 import os
 import torch
 import wandb
@@ -18,11 +19,16 @@ from lmflow.args import DatasetArguments
 from lmflow.datasets.dataset import Dataset
 from lmflow.pipeline.base_pipeline import BasePipeline
 from lmflow.models.hf_decoder_model import HFDecoderModel
-from lmflow.utils.data_utils import set_random_seed, batchlize, answer_extraction
+from lmflow.utils.data_utils import (set_random_seed, batchlize,
+                                     answer_extraction, process_image_flag)
 os.environ["TOKENIZERS_PARALLELISM"] = "false"  # To avoid warnings about parallelism in tokenizers
-
 def rstrip_partial_utf8(string):
     return string.replace("\ufffd", "")
+
+supported_dataset_type = [
+    "text_only",
+    "image_text",
+]
 
 class Inferencer(BasePipeline):
     """
@@ -69,8 +75,24 @@ class Inferencer(BasePipeline):
 
 
     def create_dataloader(self, dataset: Dataset):
-        data_dict = dataset.to_dict()
-        inputs = [ instance["text"] for instance in data_dict["instances"] ]
+        r"""Batchlize dataset and format it to dataloader.
+
+        Args:
+            dataset (Dataset): the dataset object
+
+        Output:
+            dataloader (batchlize): the dataloader object
+            dataset_size (int): the length of the dataset
+
+        """
+        if dataset.get_type() == "text_only":
+            data_dict = dataset.to_dict()
+            inputs = [instance["text"] for instance in data_dict["instances"] ]
+        elif dataset.get_type() == "image_text":
+            backend_dataset = dataset.get_backend_dataset()
+            # can not do the do_dict information because the data contains image.
+            inputs = [backend_dataset.__getitem__(idx)
+                        for idx in range(len(backend_dataset))]
         dataset_size = len(inputs)
         dataset_buf = []
         for idx in range(dataset_size):
@@ -94,6 +116,7 @@ class Inferencer(BasePipeline):
         max_new_tokens: int=100,
         temperature: float=0.0,
         prompt_structure: str='{input}',
+        remove_image_flag: bool=False,
     ):
         """
         Perform inference for a model
@@ -110,10 +133,10 @@ class Inferencer(BasePipeline):
 
         output_dataset: Dataset object.
         """
-        if dataset.get_type() != "text_only":
+        if dataset.get_type() not in supported_dataset_type:
             raise NotImplementedError(
-                'input dataset should have type "text_only"'
-            )
+                'input dataset should have type {}'.format(
+                                        supported_dataset_type))
 
         dataloader, data_size = self.create_dataloader(dataset)
 
@@ -126,31 +149,51 @@ class Inferencer(BasePipeline):
 
         for batch_index, batch in enumerate(dataloader):
             current_batch = batch[0]        # batch size is 1
-
-            input = prompt_structure.format(input=current_batch['input'])
-
-            if self.inferencer_args.device == "gpu":
-                inputs = model.encode(input, return_tensors="pt").to(device=self.local_rank)
-            elif self.inferencer_args.device == "cpu":
-                inputs = model.encode(input, return_tensors="pt").to(device='cpu')
+            if isinstance(current_batch['input'], str):
+                input = prompt_structure.format(input=current_batch['input'])
             else:
-                raise NotImplementedError(
-                    f"device \"{self.inferencer_args.device}\" is not supported"
-                )
+                input = current_batch['input']
+                input['text'] = prompt_structure.format(input=input['text'])
+            
+            if remove_image_flag:
+                input['text'] = input['text'].split("<ImageHere>")
+                new_input = copy.deepcopy(input)
+                new_input['text'] = new_input['text'][-1]
+                input['text'] = input['text'][0]
+                inputs = model.encode(input, return_tensors="pt").to(device=self.local_rank)
+                new_inputs = model.encode(new_input, return_tensors="pt").to(device=self.local_rank)
+                image_token_indexes = [inputs["input_ids"].shape[1]]
+                inputs["input_ids"] = torch.cat([inputs["input_ids"],
+                                                 new_inputs["input_ids"]], dim=1) 
+                inputs["attention_mask"] = torch.cat([inputs["attention_mask"],
+                                                      new_inputs["attention_mask"]], dim=1)
+                # input['text'], image_token_indexes = process_image_flag(input["text"])
+            else:
+                if self.inferencer_args.device == "gpu":
+                    inputs = model.encode(input, return_tensors="pt").to(device=self.local_rank)
+                elif self.inferencer_args.device == "cpu":
+                    inputs = model.encode(input, return_tensors="pt").to(device='cpu')
+                else:
+                    raise NotImplementedError(
+                        f"device \"{self.inferencer_args.device}\" is not supported"
+                    )
+            if remove_image_flag:
+                inputs["image_token_indexes"] = image_token_indexes
 
             outputs = model.inference(
                 inputs,
-                max_new_tokens=self.inferencer_args.max_new_tokens,
+                max_new_tokens=max_new_tokens,
                 temperature=self.inferencer_args.temperature,
                 repetition_penalty=self.inferencer_args.repetition_penalty,
                 do_sample=self.inferencer_args.do_sample,
                 top_p=self.inferencer_args.top_p,
             )
+            
             text_out = model.decode(outputs[0], skip_special_tokens=True)
-
             # only return the generation, trucating the input
-            prompt_length = len(model.decode(inputs[0], skip_special_tokens=True,))
-            text_out = text_out[prompt_length:]
+            if self.model_args.arch_type != "vision_encoder_decoder":
+                prompt_length = len(model.decode(inputs[0], skip_special_tokens=True,))
+                text_out = text_out[prompt_length:]
             output_dict["instances"].append({ "text": text_out })
 
         output_dataset = Dataset(DatasetArguments(dataset_path = None))
@@ -175,13 +218,21 @@ class Inferencer(BasePipeline):
                     max_new_tokens=token_per_step,
                     temperature=self.inferencer_args.temperature,
                 )
-
                 new_append_text = output_dataset.to_dict()["instances"][0]["text"]
                 new_append_text = rstrip_partial_utf8(new_append_text)
                 response += new_append_text
-
-                input_dict = input_dataset.to_dict()
-                input_dict["instances"][0]["text"] += new_append_text
+                if input_dataset.get_type() != "image_text":
+                    input_dict = input_dataset.to_dict()
+                    input_dict["instances"][0]["text"] += new_append_text
+                else:
+                    # currently image type doesn't support to_dict;
+                    # to_dict would convert the PIL file into bytes format.
+                    # TODO check how to fix this confilct and remove the if else;
+                    inputs = input_dataset.backend_dataset.__getitem__(0)
+                    input_dict = dict(
+                        type="image_text",
+                        instances=[inputs])
+                    input_dict["instances"][0]["text"] += new_append_text
 
                 input_dataset = input_dataset.from_dict(input_dict)
 

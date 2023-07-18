@@ -121,7 +121,7 @@ class ModelArguments:
                 "Model architecture type, e.g. \"decoder_only\","
                 " \"encoder_decoder\""
             ),
-            "choices": ["decoder_only", "encoder_decoder", "text_regression"],
+            "choices": ["decoder_only", "encoder_decoder", "text_regression", "vision_encoder_decoder"],
         },
     )
     config_name: Optional[str] = field(
@@ -201,6 +201,10 @@ class ModelArguments:
     use_int8: bool = field(
         default=False,
         metadata={"help": "whether to load int8 quantization for inference"}
+    )
+    custom_model: bool = field(
+        default=False,
+        metadata={"help": "flag for the model from huggingface or not"}
     )
 
     def __post_init__(self):
@@ -627,7 +631,6 @@ class InferencerArguments:
         },
     )
 
-
 @dataclass
 class RaftAlignerArguments(TrainingArguments):
     """
@@ -718,6 +721,8 @@ class BenchmarkingArguments:
                     "byte_perplexity", "bits_per_byte"],
         },
     )
+
+
 
 PIPELINE_ARGUMENT_MAPPING = {
     "finetuner": FinetunerArguments,
