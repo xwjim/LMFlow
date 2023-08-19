@@ -151,6 +151,14 @@ class ModelArguments:
             )
         },
     )
+    trust_remote_code : bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "Whether to trust remote code when loading model."
+            )
+        },
+    )
     torch_dtype: Optional[str] = field(
         default=None,
         metadata={
@@ -164,6 +172,24 @@ class ModelArguments:
     use_lora: bool = field(
         default=False,
         metadata={"help": "Whether to lora."},
+    )
+    use_qlora: bool = field(
+        default=False,
+        metadata={"help": "Whether to use qlora."},
+    )
+    bits: int = field(
+        default=4,
+        metadata={"help": "The number of bits for quantization.",
+                  "choices": [4, 8],},
+    )
+    quant_type: str = field(
+        default='nf4',
+        metadata={"help": "The quantization type for quantization.",
+                  "choices": ["nf4", "fp4"],},
+    )
+    double_quant: bool = field(
+        default=True,
+        metadata={"help": "Whether to use double quantization."},
     )
     lora_r: int = field(
         default=8,
@@ -198,13 +224,45 @@ class ModelArguments:
             )
         }
     )
+    truncate_to_model_max_length: bool = field(
+        default=True,
+        metadata={
+            "help": (
+                "whether truncate the dataset to model max length."
+            )
+        }
+    )
+    do_rope_scaling: bool = field(
+        default = False,
+        metadata={
+            "help": (
+                "whether do ROPE scaling for llama model."
+                "Linear_scaling credits to the Reddit user /u/kaiokendev."
+                "https://arxiv.org/abs/2306.15595"
+                "NTK_scaling credits to the Reddit users /u/bloc97 and /u/emozilla."
+                "https://www.reddit.com/r/LocalLLaMA/comments/14lz7j5/ntkaware_scaled_rope_allows_llama_models_to_have/"
+            )
+        }   
+    )
+    rope_pi_ratio: int = field(
+        default=1,
+        metadata={
+            "help": (
+                "the ratio of pi in RoPE scaling."
+            )
+        }
+    )
+    rope_ntk_ratio: int = field(
+        default=1,
+        metadata={
+            "help": (
+                "the ratio of NTK in RoPE scaling."
+            )
+        }
+    )
     use_int8: bool = field(
         default=False,
         metadata={"help": "whether to load int8 quantization for inference"}
-    )
-    custom_model: bool = field(
-        default=False,
-        metadata={"help": "flag for the model from huggingface or not"}
     )
 
     def __post_init__(self):
@@ -212,6 +270,41 @@ class ModelArguments:
             raise ValueError(
                 "--config_overrides can't be used in combination with --config_name or --model_name_or_path"
             )
+
+
+@dataclass
+class VisModelArguments(ModelArguments):
+    low_resource: Optional[bool] = field(
+        default=False,
+        metadata={
+            "help": "Use 8 bit and float16 when loading llm"
+        }
+    )
+    custom_model: bool = field(
+        default=False,
+        metadata={"help": "flag for the model from huggingface or not"}
+    )
+    checkpoint_path: str = field(
+        default=None,
+        metadata={"help": "path for model checkpoint"}
+    )
+    llm_model_name_or_path: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": (
+                "llm model in multi-modality model"
+            )
+        },
+    )
+    use_prompt_cache: bool = field(
+        default=False,
+        metadata={"help": "Whether to use prompt cache."},
+    )
+    prompt_cache_path: Optional[str] = field(
+        default=None,
+        metadata={"help": "Path to prompt cache."},
+    )
+
 
 
 @dataclass
