@@ -4,9 +4,10 @@
 #     COMMIT: d5fecf30ba8011067b10cf51fede53a5ab6574e4
 
 # Parses arguments
-model_name_or_path=gpt2
-dataset_path=data/alpaca/train
-output_dir=output_models/finetune
+exp_id=finetune
+model_name_or_path=~/github/llm_ckpt/Ziya-LLaMA-13B/
+dataset_path=data/lawerv3/
+output_dir=output_models/${exp_id}
 deepspeed_args="--master_port=11000"
 
 while [[ $# -ge 1 ]]; do
@@ -36,7 +37,6 @@ while [[ $# -ge 1 ]]; do
 done
 
 # Finetune
-exp_id=finetune
 project_dir=$(cd "$(dirname $0)"/..; pwd)
 log_dir=${project_dir}/log/${exp_id}
 mkdir -p ${output_dir} ${log_dir}
@@ -46,18 +46,25 @@ deepspeed ${deepspeed_args} \
     --model_name_or_path ${model_name_or_path} \
     --dataset_path ${dataset_path} \
     --output_dir ${output_dir} --overwrite_output_dir \
-    --num_train_epochs 0.01 \
-    --learning_rate 2e-5 \
-    --block_size 512 \
-    --per_device_train_batch_size 1 \
+    --num_train_epochs 1 \
+    --learning_rate 1e-5 \
+    --block_size 4196 \
+    --per_device_train_batch_size 3 \
     --deepspeed configs/ds_config_zero3.json \
     --fp16 \
-    --run_name finetune \
+    --run_name ${exp_id} \
     --validation_split_percentage 0 \
     --logging_steps 20 \
     --do_train \
+    --gradient_checkpointing \
+    --truncate_to_model_max_length False \
+    --do_rope_scaling True \
+    --rope_pi_ratio 1 \
+    --rope_ntk_ratio 4 \
     --ddp_timeout 72000 \
-    --save_steps 5000 \
+    --save_steps 400 \
     --dataloader_num_workers 1 \
     | tee ${log_dir}/train.log \
     2> ${log_dir}/train.err
+
+  # --use_flash_attention \
